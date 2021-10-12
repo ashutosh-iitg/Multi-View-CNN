@@ -1,4 +1,3 @@
-from _typeshed import Self
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,11 +5,11 @@ import torch.nn.functional as F
 from torchvision import models
 
 class MVCNN(nn.Module):
-    def __init__(self, num_classes=1000, num_views=5, pretrained=True):
+    def __init__(self, num_classes=1000, pretrained=True):
         super(MVCNN, self).__init__()
-        backbone = models.resnet34(pretrained=pretrained)
-        fc_in_features = backbone.fc.in_features
-        self.features = nn.Sequential(*list(backbone.children()[:-1]))
+        resnet = models.resnet34(pretrained=pretrained)
+        fc_in_features = resnet.fc.in_features
+        self.features = nn.Sequential(*list(resnet.children())[:-1])
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(fc_in_features, 2048),
@@ -22,7 +21,7 @@ class MVCNN(nn.Module):
         )
 
     def forward(self, inputs):
-        # inputs.shape = samples x num_views x height x width x channels
+        # inputs.shape = samples x views x height x width x channels
         inputs = inputs.transpose(0, 1)
         view_features = []
         for view_batch in inputs:
