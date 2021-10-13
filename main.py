@@ -12,13 +12,10 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 import utils
-#import timm
-from data import PreProcessing, BagDataset
+from data import PlantDataset
 from model import MVCNN
 from train import train
 from evaluate import evaluate
-
-from sklearn.model_selection import train_test_split
 
 cudnn.benchmark = True
 
