@@ -27,7 +27,7 @@ class PlantDataset(Dataset):
     def get_image(self, image_path):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
-        image = cv2.resize(image, self.shape)
+        image = cv2.resize(image, self.params.shape)
         image /= 255.0
 
         if self.transform is not None:
