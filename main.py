@@ -12,7 +12,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 import utils
-from data import PlantDataset
+from data import PreProcessing, PlantDataset
 from model import MVCNN
 from train import train
 from evaluate import evaluate
@@ -21,12 +21,10 @@ cudnn.benchmark = True
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser(description="Training settings and parameters")
-    parser.add_argument("--csv-path", type=str, default="data.csv", help="Path to csv file")
+    parser.add_argument("--csv-dir", type=str, default="data.csv", help="Path to csv file")
     parser.add_argument("--image-dir", type=str, default="images", help="Full path to image directory")
     parser.add_argument("--output-dir", type=str, default="output", help="Full path to output directory")
     parser.add_argument("--params-path", type=str, default="config/hparams.json", help="Path to hyperparameters json file")
-    parser.add_argument('--xlabel-column', type=str, default='image', help='image column on csv')
-    parser.add_argument('--brand-column', type=str, default='brand', help='brand column on csv')
     parser.add_argument('--model', type=str, default='resnet34', help='Model architecture to be used for training')
     parser.add_argument('--encoding', type=str, default='utf-8', help='CSV file encoding')
     parser.add_argument('--debug', nargs='?', const=True, default=False, help='run script in debug mode')
@@ -82,61 +80,27 @@ def main(opt):
     # Create the input data pipeline
     logging.info("Loading the datasets...")
 
-    csv_config_dict = {
-        'csv_path': opt.csv_path,
-        'brand_col': opt.brand_column,
-        'encoding': opt.encoding
-    }
-
-    data = PreProcessing(csv_config_dict=csv_config_dict)
-    df, brand_dict = data.df, data.brand_dict
-
-    # save brand_dict for future use
-    utils.save_dict_to_json(brand_dict, os.path.join(opt.output_dir, "brand_dict.json"))
-
-    # check for debug mode
-    if opt.debug:
-        logging.info("Settings for debugging: epoch = 1, size of dataset = 500")
-        params.epochs = 1
-        df = df.sample(n=500, random_state=params.seed).reset_index(drop=True)
+    data = PreProcessing(csv_dir=opt.csv_dir)
+    train_df, test_df, label_dict = data.train_df, data.test_df, data.label_dct
 
     # update params
     params.mode = opt.model
-    params.num_targets = len(brand_dict)
-
-    # split data into train, test and validation set
-    X = df.drop(columns=['brand']).copy()
-    y = df['brand']
-
-    train_size = 0.7
-
-    X_train, X_rem, y_train, y_rem = train_test_split(X, y, train_size=train_size, stratify=y)
-
-    test_size = 0.3
-    X_valid, X_test, y_valid, y_test = train_test_split(X_rem, y_rem, test_size=test_size, stratify=y_rem)
-
-    X_train.reset_index(drop=True, inplace=True)
-    y_train.reset_index(drop=True, inplace=True)
-    X_valid.reset_index(drop=True, inplace=True)
-    y_valid.reset_index(drop=True, inplace=True)
-    X_test.reset_index(drop=True, inplace=True)
-    y_test.reset_index(drop=True, inplace=True)
+    params.num_targets = len(label_dict)
 
     # create dataset and dataloader
-    train_dataset = BagDataset(X_train, y_train, opt.image_dir, transform=get_transform(split="train"))
-    valid_dataset = BagDataset(X_valid, y_valid, opt.image_dir, transform=get_transform(split="valid")) 
-    test_dataset = BagDataset(X_test, y_test, opt.image_dir, transform=get_transform(split="test"))
+    train_dataset = PlantDataset(train_df, opt.image_dir, params, transform=get_transform(split="train"))
+    #valid_dataset = BagDataset(X_valid, y_valid, opt.image_dir, transform=get_transform(split="valid")) 
+    test_dataset = PlantDataset(test_df, opt.image_dir, params, transform=get_transform(split="test"))
 
     train_dl = DataLoader(train_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=True, pin_memory=True)
-    valid_dl = DataLoader(valid_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
+    #valid_dl = DataLoader(valid_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
     test_dl = DataLoader(test_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
     
     # data-loading completed
     logging.info("- done.")
 
     # Define the model
-    # model = BagModel(params, pretrained=True).model
-    model = timm.create_model(opt.model, num_classes=params.num_targets, pretrained=True)
+    model = MVCNN(num_classes=params.num_targets, pretrained=True)
     model = model.to(params.device)
 
     # Define optimizer and learning rate scheduler
@@ -164,7 +128,7 @@ def main(opt):
         train_metrics = train(train_dl, model=model, criterion=criterion, optimizer=optimizer, epoch=epoch, params=params)
 
         # Evaluate for one epoch on validation set
-        val_metrics = evaluate(valid_dl, model=model, criterion=criterion, epoch=epoch, params=params)
+        val_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
         scheduler.step(val_metrics["Loss"])
 
         is_best = val_metrics["Accuracy"] >= best_acc
@@ -186,11 +150,11 @@ def main(opt):
         logging.info("- Validation metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in val_metrics.items()))
 
         # test the performance of model on test set after every 10 epochs
-        if (epoch % 10 == 0):
+        '''if (epoch % 10 == 0):
             logging.info("Performance on test set after epoch {}".format(epoch))
             test_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
             logging.info("- Test metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in test_metrics.items()))
-
+        '''
     logging.info("Training completed ....")
 
 if __name__ == "__main__":
