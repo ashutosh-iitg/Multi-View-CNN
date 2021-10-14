@@ -16,14 +16,12 @@ class PlantDataset(Dataset):
         
     def __len__(self) -> int:
         # return size of dataset
-        return len(self.df)/2
+        return self.df.shape[0]/2
     
     def __getitem__(self, idx:int):
-        df = self.df[self.df['CollectionId']==idx]
-        label = df['Genus'][0]
-        
-        files = df['FileName'].tolist()
-        image = torch.stack([self.get_image(os.path.join(self.image_dir, os.path.splitext(file[0])+".jpg")) for file in files])
+        df = self.df[self.df.CollectionId==idx]
+        label = df.Genus[0]
+        image = torch.stack([self.get_image(os.path.join(self.image_dir, os.path.splitext(file)+".jpg")) for file in df.FileName])
         return image, label
 
     def get_image(self, image_path):
