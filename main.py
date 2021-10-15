@@ -21,8 +21,7 @@ cudnn.benchmark = True
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser(description="Training settings and parameters")
-    parser.add_argument("--csv-train", type=str, default="train_data.csv", help="Path to train csv file")
-    parser.add_argument("--csv-test", type=str, default="test_data.csv", help="Path to test csv file")
+    parser.add_argument("--csv-dir", type=str, default="./", help="Path to csv dir")
     parser.add_argument("--image-dir", type=str, default="images", help="Full path to image directory")
     parser.add_argument("--output-dir", type=str, default="output", help="Full path to output directory")
     parser.add_argument("--params-path", type=str, default="config/hparams.json", help="Path to hyperparameters json file")
