@@ -63,6 +63,7 @@ def main(opt):
 
     # use GPU if available
     params.cuda = torch.cuda.is_available()
+    params.shape = (224, 224)
 
     if params.cuda:
         params.device = torch.device('cuda')
