@@ -21,7 +21,7 @@ class PlantDataset(Dataset):
     def __getitem__(self, idx:int):
         df = self.df[self.df.CollectionId==idx]
         label = df.Genus[0]
-        image = torch.stack([self.get_image(os.path.join(self.image_dir, os.path.splitext(file)+".jpg")) for file in df.FileName])
+        image = torch.stack([self.get_image(os.path.join(self.image_dir, os.path.splitext(file)[0]+".jpg")) for file in df.FileName])
         return image, label
 
     def get_image(self, image_path):
