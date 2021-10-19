@@ -3,12 +3,16 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+import wandb
 import utils
 from utils import calculate_accuracy
 
 def train(dataloader, model, criterion, optimizer, epoch, params):
     metric_monitor = utils.MetricMonitor()
     model.train()
+
+    # tell wandb to watch what the model gets up to: gradients, weights, and more!
+    wandb.watch(model, criterion, log="all", log_freq=10)
 
     stream = tqdm(dataloader)
     for i, (images, target) in enumerate(stream, start=1):
@@ -30,5 +34,6 @@ def train(dataloader, model, criterion, optimizer, epoch, params):
         stream.set_description(
             "Epoch: {epoch}/{epochs}. Train.      {metric_monitor}".format(epoch=epoch, epochs=params.epochs, metric_monitor=metric_monitor)
         )
+        wandb.log({"epoch": epoch, "loss": loss.item(), "accuracy": accuracy})
 
     return metric_monitor()

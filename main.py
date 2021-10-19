@@ -19,6 +19,9 @@ from model import MVCNN
 from train import train
 from evaluate import evaluate
 
+import wandb
+wandb.login()
+
 cudnn.benchmark = True
 
 def parse_opt(known=False):
@@ -86,91 +89,93 @@ def main(opt):
     if params.cuda:
         torch.cuda.manual_seed(params.seed)
 
-    # set logger
-    utils.set_logger(os.path.join(opt.output_dir, 'train.log'))
+    # tell wandb to get started
+    with wandb.init(project='MVCNN-PlantCLEF', config=params.dict):
+        # set logger
+        utils.set_logger(os.path.join(opt.output_dir, 'train.log'))
 
-    # Create the input data pipeline
-    logging.info("Loading the datasets...")
+        # Create the input data pipeline
+        logging.info("Loading the datasets...")
 
-    data = PreProcessing(csv_dir=opt.csv_dir)
-    train_df, test_df, label_dict = data.train_df, data.test_df, data.label_dict
+        data = PreProcessing(csv_dir=opt.csv_dir)
+        train_df, test_df, label_dict = data.train_df, data.test_df, data.label_dict
 
-    train_df = reset_CollectionId(train_df)
-    test_df = reset_CollectionId(test_df)
+        train_df = reset_CollectionId(train_df)
+        test_df = reset_CollectionId(test_df)
 
-    # update params
-    params.mode = opt.model
-    params.num_targets = len(label_dict)
+        # update params
+        params.mode = opt.model
+        params.num_targets = len(label_dict)
 
-    # create dataset and dataloader
-    train_dataset = PlantDataset(train_df, opt.image_dir, params, transform=get_transform(split="train"))
-    #valid_dataset = BagDataset(X_valid, y_valid, opt.image_dir, transform=get_transform(split="valid")) 
-    test_dataset = PlantDataset(test_df, opt.image_dir, params, transform=get_transform(split="test"))
+        # create dataset and dataloader
+        train_dataset = PlantDataset(train_df, opt.image_dir, params, transform=get_transform(split="train"))
+        #valid_dataset = BagDataset(X_valid, y_valid, opt.image_dir, transform=get_transform(split="valid")) 
+        test_dataset = PlantDataset(test_df, opt.image_dir, params, transform=get_transform(split="test"))
 
-    train_dl = DataLoader(train_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=True, pin_memory=True)
-    #valid_dl = DataLoader(valid_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
-    test_dl = DataLoader(test_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
-    
-    # data-loading completed
-    logging.info("- done.")
+        train_dl = DataLoader(train_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=True, pin_memory=True)
+        #valid_dl = DataLoader(valid_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
+        test_dl = DataLoader(test_dataset, batch_size=params.batch_size, num_workers=params.num_workers, shuffle=False, pin_memory=True)
+        
+        # data-loading completed
+        logging.info("- done.")
 
-    # Define the model
-    model = MVCNN(num_classes=params.num_targets, pretrained=True)
-    model = model.to(params.device)
+        # Define the model
+        model = MVCNN(num_classes=params.num_targets, pretrained=True)
+        model = model.to(params.device)
 
-    # Define optimizer and learning rate scheduler
-    optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0, amsgrad=False)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=15, verbose=True)
+        # Define optimizer and learning rate scheduler
+        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0, amsgrad=False)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=15, verbose=True)
 
-    # fetch loss function 
-    criterion = nn.CrossEntropyLoss().to(params.device)
+        # fetch loss function 
+        criterion = nn.CrossEntropyLoss().to(params.device)
 
-    # reload weights from restore_file if specified
-    if opt.resume_best:
-        restore_path = os.path.join(opt.output_dir, 'best.pth.tar')
-        logging.info("Restoring parameters from {}".format(restore_path))
-        utils.load_checkpoint(restore_path, model, optimizer)
-    elif opt.resume:
-        restore_path = os.path.join(opt.output_dir, 'last.pth.tar')
-        logging.info("Restoring parameters from {}".format(restore_path))
-        utils.load_checkpoint(restore_path, model, optimizer)
+        # reload weights from restore_file if specified
+        if opt.resume_best:
+            restore_path = os.path.join(opt.output_dir, 'best.pth.tar')
+            logging.info("Restoring parameters from {}".format(restore_path))
+            utils.load_checkpoint(restore_path, model, optimizer)
+        elif opt.resume:
+            restore_path = os.path.join(opt.output_dir, 'last.pth.tar')
+            logging.info("Restoring parameters from {}".format(restore_path))
+            utils.load_checkpoint(restore_path, model, optimizer)
 
-    # Train the model
-    logging.info("Starting training for {} epoch(s)".format(params.epochs))
-    best_acc = 0
-    for epoch in range(1, params.epochs+1):
-        # one full pass over the training set
-        train_metrics = train(train_dl, model=model, criterion=criterion, optimizer=optimizer, epoch=epoch, params=params)
+        # Train the model
+        logging.info("Starting training for {} epoch(s)".format(params.epochs))
+        best_acc = 0
+        for epoch in range(1, params.epochs+1):
+            # one full pass over the training set
+            train_metrics = train(train_dl, model=model, criterion=criterion, optimizer=optimizer, epoch=epoch, params=params)
 
-        # Evaluate for one epoch on validation set
-        val_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
-        scheduler.step(val_metrics["Loss"])
+            # Evaluate for one epoch on validation set
+            val_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
+            scheduler.step(val_metrics["Loss"])
 
-        is_best = val_metrics["Accuracy"] >= best_acc
+            is_best = val_metrics["Accuracy"] >= best_acc
 
-        # Save weights
-        utils.save_checkpoint({'epoch': epoch,
-                               'state_dict': model.state_dict(),
-                               'optim_dict': optimizer.state_dict()},
-                               is_best=is_best,
-                               checkpoint=opt.output_dir)
+            # Save weights
+            utils.save_checkpoint({'epoch': epoch,
+                                'state_dict': model.state_dict(),
+                                'optim_dict': optimizer.state_dict()},
+                                is_best=is_best,
+                                checkpoint=opt.output_dir)
 
-        # If best_eval, best_save_path
-        if is_best:
-            logging.info("- Found new best accuracy")
-            best_acc = val_metrics["Accuracy"]
+            # If best_eval, best_save_path
+            if is_best:
+                logging.info("- Found new best accuracy")
+                best_acc = val_metrics["Accuracy"]
 
-        # log training and validation metrics
-        logging.info("- Train metrics:      {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in train_metrics.items()))
-        logging.info("- Validation metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in val_metrics.items()))
+            # log training and validation metrics
+            logging.info("- Train metrics:      {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in train_metrics.items()))
+            logging.info("- Validation metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in val_metrics.items()))
 
-        # test the performance of model on test set after every 10 epochs
-        '''if (epoch % 10 == 0):
-            logging.info("Performance on test set after epoch {}".format(epoch))
-            test_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
-            logging.info("- Test metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in test_metrics.items()))
-        '''
-    logging.info("Training completed ....")
+            # test the performance of model on test set after every 10 epochs
+            '''if (epoch % 10 == 0):
+                logging.info("Performance on test set after epoch {}".format(epoch))
+                test_metrics = evaluate(test_dl, model=model, criterion=criterion, epoch=epoch, params=params)
+                logging.info("- Test metrics: {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in test_metrics.items()))
+            '''
+        logging.info("Training completed ....")
 
 if __name__ == "__main__":
     opt = parse_opt()

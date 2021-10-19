@@ -2,6 +2,7 @@
 import numpy as np
 from tqdm import tqdm
 
+import wandb
 import torch
 import utils
 from utils import calculate_accuracy
@@ -28,5 +29,10 @@ def evaluate(dataloader, model, criterion, epoch, params):
         stream.set_description(
             "Epoch: {epoch}/{epochs}. Validation. {metric_monitor}".format(epoch=epoch, epochs=params.epochs, metric_monitor=metric_monitor)
         )
+        wandb.log({"epoch":epoch, "val_accuracy": accuracy, "val_loss": loss.item()})
+    
+    '''if (epoch%5==0):
+        torch.onnx.export(model, images, "model.onnx")
+        wandb.save("model.onnx")'''
 
     return metric_monitor()
