@@ -6,7 +6,7 @@ import pandas as pd
 
 class PreProcessing():
     def __init__(self, csv_dir) -> None:
-        dict_path = "../config/label_dict.json"
+        dict_path = "config/label_dict.json"
         if os.path.isfile(dict_path):
             with open(dict_path) as f:
                 self.label_dict = json.load(f)
@@ -21,7 +21,7 @@ class PreProcessing():
         label_unique = np.unique(df.Genus)
         label_dict = {label: i for i, label in enumerate(label_unique)}
 
-        with open("../config/label_dict.json", 'w') as f:
+        with open("config/label_dict.json", 'w') as f:
             json.dump(label_dict, f, indent=4)
         
         return label_dict

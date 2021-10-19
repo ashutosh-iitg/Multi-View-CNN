@@ -8,6 +8,8 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
+import numpy as np
+import pandas as pd
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
@@ -54,6 +56,15 @@ def get_transform(split="train"):
         )
     return transform
 
+def reset_CollectionId(df):
+    uniqueId = np.unique(df.CollectionId)
+    cid_dict = {id: i for i, id in enumerate(uniqueId)}
+    cid = df.CollectionId.tolist()
+    new_cid = np.array([cid_dict[id] for id in cid])
+    df.CollectionId = new_cid
+
+    return df
+
 def main(opt):
     # Load the parameters from json file
     json_path = opt.params_path
@@ -82,7 +93,10 @@ def main(opt):
     logging.info("Loading the datasets...")
 
     data = PreProcessing(csv_dir=opt.csv_dir)
-    train_df, test_df, label_dict = data.train_df, data.test_df, data.label_dct
+    train_df, test_df, label_dict = data.train_df, data.test_df, data.label_dict
+
+    train_df = reset_CollectionId(train_df)
+    test_df = reset_CollectionId(test_df)
 
     # update params
     params.mode = opt.model
@@ -106,7 +120,7 @@ def main(opt):
 
     # Define optimizer and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0, amsgrad=False)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=15, verbose=True)
 
     # fetch loss function 
     criterion = nn.CrossEntropyLoss().to(params.device)
