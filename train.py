@@ -12,7 +12,7 @@ def train(dataloader, model, criterion, optimizer, epoch, params):
     model.train()
 
     # tell wandb to watch what the model gets up to: gradients, weights, and more!
-    wandb.watch(model, criterion, log="all", log_freq=10)
+    # wandb.watch(model, criterion, log="all", log_freq=10)
 
     stream = tqdm(dataloader)
     for i, (images, target) in enumerate(stream, start=1):
