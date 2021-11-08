@@ -1,3 +1,7 @@
+# files
+mvcnn-train.py
+svcnn-train.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
