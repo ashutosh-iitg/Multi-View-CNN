@@ -7,7 +7,7 @@ from torchvision import models
 class MVCNN(nn.Module):
     def __init__(self, num_classes=1000, pretrained=True):
         super(MVCNN, self).__init__()
-        resnet = models.resnet34(pretrained=pretrained)
+        resnet = models.resnext50_32x4d(pretrained=pretrained)
         fc_in_features = resnet.fc.in_features
         self.features = nn.Sequential(*list(resnet.children())[:-1])
         self.classifier = nn.Sequential(

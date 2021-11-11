@@ -24,7 +24,7 @@ cudnn.benchmark = True
 def parse_opt(known=False):
     parser = argparse.ArgumentParser(description="Training settings and parameters")
     parser.add_argument("--csv-dir", type=str, default="./", help="Path to csv dir")
-    parser.add_argument("--image-dir", type=str, default="images", help="Full path to image directory")
+    parser.add_argument("--image-dir", type=str, default="image", help="Full path to image directory")
     parser.add_argument("--output-dir", type=str, default="output", help="Full path to output directory")
     parser.add_argument("--params-path", type=str, default="config/hparams.json", help="Path to hyperparameters json file")
     parser.add_argument('--model', type=str, default='resnet34', help='Model architecture to be used for training')
@@ -74,7 +74,7 @@ def main(opt):
 
     # use GPU if available
     params.cuda = torch.cuda.is_available()
-    params.shape = (224, 224)
+    params.shape = (300, 300)
 
     if params.cuda:
         params.device = torch.device('cuda')
@@ -120,7 +120,7 @@ def main(opt):
 
     # Define optimizer and learning rate scheduler
     optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0, amsgrad=False)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=15, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
 
     # fetch loss function 
     criterion = nn.CrossEntropyLoss().to(params.device)
@@ -157,8 +157,8 @@ def main(opt):
 
         # If best_eval, best_save_path
         if is_best:
-            logging.info("- Found new best accuracy")
             best_acc = val_metrics["Accuracy"]
+            logging.info("\n- Found new best accuracy: {:05.3f}".format(best_acc))
 
         # log training and validation metrics
         logging.info("- Train metrics:      {}/{}".format(epoch, params.epochs) + " | ".join("{}:{:05.3f}".format(k, v) for k, v in train_metrics.items()))
