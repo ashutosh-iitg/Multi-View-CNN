@@ -6,7 +6,6 @@ import json
 import tempfile
 import argparse
 
-from torch._C import default_generator
 import predictor
 from bottle import route, run, request, debug, HTTPError, HTTPResponse
 
