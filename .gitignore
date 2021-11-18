@@ -1,6 +1,10 @@
 # files
 mvcnn-train.py
 svcnn-train.py
+mvcnn-pred.py
+
+# Mac cache files
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
