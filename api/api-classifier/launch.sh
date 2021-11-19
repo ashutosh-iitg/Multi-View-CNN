@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Sets default values for the env varailbles
-LEARNING_LABEL='https://auto-assessing.s3-ap-northeast-1.amazonaws.com/resnet/resnet_labels_platform.json'
-LEARNING_MODEL='https://auto-assessing.s3-ap-northeast-1.amazonaws.com/resnet/resnet_models_platform.h5'
+LEARNING_LABEL='https://bag-brand-classification-data.s3.ap-northeast-1.amazonaws.com/mvcnn/label_dict.json'
+LEARNING_MODEL='https://bag-brand-classification-data.s3.ap-northeast-1.amazonaws.com/mvcnn/best.pth.tar'
 
 # Downloads model weights and config files.
 mkdir output/
