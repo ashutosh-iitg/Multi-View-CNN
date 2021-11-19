@@ -4,9 +4,10 @@ import json
 import requests
 import argparse
 import tempfile
-h
+
 from urllib.parse import urlparse
 from bottle import route, run, request, debug, HTTPError, HTTPResponse
+from albumentations.pytorch.transforms import ToTensorV2
 
 
 def init():
