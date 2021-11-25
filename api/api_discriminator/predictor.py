@@ -20,5 +20,5 @@ def load_model(model_path, model):
     """
     if not os.path.exists(model_path):
         raise("File doesn't exist {}".format(model_path))
-    state_dict = torch.load(model_path)
+    state_dict = torch.load(model_path,map_location='cpu')
     model.load_state_dict(state_dict['state_dict'])

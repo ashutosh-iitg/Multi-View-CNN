@@ -1,5 +1,0 @@
-torch
-pandas
-torchvision
-albumentations
-opencv-python
