@@ -1,13 +1,11 @@
 import os
 import sys
-import json
 import requests
 import argparse
 import tempfile
 
 from urllib.parse import urlparse
 from bottle import route, run, request, debug, HTTPError, HTTPResponse
-from albumentations.pytorch.transforms import ToTensorV2
 
 
 def init():
@@ -27,25 +25,20 @@ def predict():
     except Exception as e:
         return HTTPError(Exception=e)
 
-    # upload = request.files.get('upload')
-    # Reference: https://stackoverflow.com/questions/31642717/python-bottle-multiple-file-upload/31644337#comment51232480_31642717
-    uploads = request.files.getall('upload')
+    upload1 = request.files.get('upload1')
+    upload2 = request.files.get('upload2')
 
-    # Check if file is attached
-    if uploads is None:
-        return HTTPError(status='406 Not Accetable')
+    # no file is attached
+    if upload1 is None or upload2 is None:
+        return HTTPError(status="406 Not Acceptable")
 
-    # how to post multiple files
-    files = []
     with tempfile.TemporaryDirectory() as dname:
-        i = 0
-        for upload in uploads:
-            temp_file = os.path.join(dname, "temp_file")
-            upload.save(temp_file)
-            with open(temp_file, "rb") as f:
-                image = f.read()
-                files.append(('upload', ('temp{}.jpg'.format(i), image, 'image/jpeg')))
-            i += 1
+        temp_file1 = os.path.join(dname, "temp_file1")
+        temp_file2 = os.path.join(dname, "temp_file2")
+        upload1.save(temp_file1)
+        upload2.save(temp_file2)
+    file_names = [temp_file1,temp_file2]
+    files = [('file', open(f, 'rb')) for f in file_names]
     
     # call detect API
     try:

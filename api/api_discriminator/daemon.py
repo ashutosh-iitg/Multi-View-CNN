@@ -1,5 +1,4 @@
 import os
-from urllib import parse
 import cv2
 import sys
 import json
@@ -19,7 +18,7 @@ def init():
     global predict_model
     global label_dict
 
-    parser = argparse.ArgumentParser(description='A script for prediction using MVCNN model')
+    parser = argparse.ArgumentParser(description='A script for Genus Prediction using MVCNN model')
     parser.add_argument('--model-path', default='output/best.pth.tar', type=str, help='prediction model file path.')
     parser.add_argument('--label-path', default='output/label_dict.json', type=str, help='label json file path.')
 
@@ -64,15 +63,16 @@ def discriminate():
             return HTTPError(status='406 Not Acceptable')
 
         # how to post multiple files
+        i = 1
         images = []
         with tempfile.TemporaryDirectory() as dname:
-            i = 0
             for upload in uploads:
-                temp_file = os.path.join(dname, "temp_file")
+                temp_file = os.path.join(dname, "temp_file{}".format(i))
                 upload.save(temp_file)
                 with open(temp_file, "rb") as f:
                     image = np.asarray(bytearray(f.read()), dtype="uint8")
                 images.append(get_image(image))
+                i += 1
         images = torch.stack(images, dim=0)
 
         pred = predict(images)

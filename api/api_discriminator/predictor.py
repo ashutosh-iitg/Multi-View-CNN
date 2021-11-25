@@ -1,11 +1,5 @@
 import os
-import cv2
-import json
 import torch
-import torch.nn as nn
-
-import numpy as np
-import pandas as pd
 
 def predict(model, image):
     softmax = torch.nn.LogSoftmax(dim=1)
@@ -13,7 +7,7 @@ def predict(model, image):
     with torch.no_grad():
         output = model(image)
     
-    output = torch.argmax(softmax(output), dim=1).detach().numpy()
+    output = torch.argmax(softmax(output), dim=1).detach().to(torch.device('cpu')).numpy()
     # output = output.detach().to(torch.device('cpu')).numpy()
 
     return output
