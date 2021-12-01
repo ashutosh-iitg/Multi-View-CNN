@@ -31,6 +31,6 @@ ADD ./docker/api/supervisor/supervisor.d/ /etc/supervisor.d/
 RUN ln -sf /dev/stdout /var/log/supervisor/daemon.log
 RUN ln -sf /dev/stdout /var/log/messages
 
-CMD ["sh", "/auto-assessing/launch.sh"]
+CMD ["sh", "/app/launch.sh"]
 
 EXPOSE 8091
