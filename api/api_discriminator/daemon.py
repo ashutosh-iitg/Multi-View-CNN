@@ -57,22 +57,26 @@ def predict(image):
 @route('/discriminate', method='POST')
 def discriminate():
     try:
-        uploads= request.files.getall('upload')
+        upload1 = request.files.get('upload1')
+        upload2 = request.files.get('upload2')
+        
+        # no file is attached
+        if upload1 is None or upload2 is None:
+            return HTTPError(status="406 Not Acceptable")
 
-        if not uploads:
-            return HTTPError(status='406 Not Acceptable')
-
-        # how to post multiple files
-        i = 1
+        # post multiple files
         images = []
         with tempfile.TemporaryDirectory() as dname:
-            for upload in uploads:
-                temp_file = os.path.join(dname, "temp_file{}".format(i))
-                upload.save(temp_file)
-                with open(temp_file, "rb") as f:
-                    image = np.asarray(bytearray(f.read()), dtype="uint8")
-                images.append(get_image(image))
-                i += 1
+            temp_file1 = os.path.join(dname, "temp_file1")
+            temp_file2 = os.path.join(dname, "temp_file2")
+            upload1.save(temp_file1)
+            upload2.save(temp_file2)
+            with open(temp_file1, "rb") as f:
+                image1 = np.asarray(bytearray(f.read()), dtype="uint8")
+            with open(temp_file2, "rb") as f:
+                image2 = np.asarray(bytearray(f.read()), dtype="uint8")
+            images=[image1,image2]
+        
         images = torch.stack(images, dim=0)
 
         pred = predict(images)

@@ -7,14 +7,14 @@ RUN apt install -y git
 WORKDIR /app
 
 # setup python environment
-RUN apt install -y python3.7 python3.7-dev curl python3-distutils
+RUN apt install -y python3.8 python3.8-dev curl python3-distutils
 RUN curl https://bootstrap.pypa.io/get-pip.py | python3
 # for opencv
 RUN apt install -y libglib2.0-0 libsm6 libfontconfig1 libxrender1 libxext6 libgl1-mesa-dev
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 RUN pip install pipenv
-RUN pipenv --python 3.7
+RUN pipenv --python 3.8
 
 COPY ./ /app/
 

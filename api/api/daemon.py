@@ -27,7 +27,6 @@ def predict():
 
     upload1 = request.files.get('upload1')
     upload2 = request.files.get('upload2')
-
     # no file is attached
     if upload1 is None or upload2 is None:
         return HTTPError(status="406 Not Acceptable")
@@ -37,9 +36,7 @@ def predict():
         temp_file2 = os.path.join(dname, "temp_file2")
         upload1.save(temp_file1)
         upload2.save(temp_file2)
-    file_names = [temp_file1,temp_file2]
-    files = [('file', open(f, 'rb')) for f in file_names]
-    
+    files = {'upload1': open(temp_file1, 'rb'), 'upload2': open(temp_file2, 'rb')}
     # call detect API
     try:
         response = requests.post(discriminator_endpoint, files=files)
