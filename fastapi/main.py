@@ -5,9 +5,10 @@ import json
 import argparse
 
 from typing import ItemsView, Optional, List
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse
 
+import uvicorn
 import predictor
 
 import torch
@@ -54,11 +55,16 @@ def predict(image):
         return pred
     except ValueError as e:
         print(e, file=sys.stderr)
-        return HTTPError(body=e, exception=ValueError)
+        return HTTPException(body=e, exception=ValueError)
 
 @app.post("/predict/")
 async def bag_predict(files: List[UploadFile] = File(...)):
-    images = [get_image(await file.read()) for file in files]
+    images = [get_image(np.asarray(bytearray(await file.read()))) for file in files]
     images = torch.stack(images, dim=0)
     pred = predict(images)
     return {"Genus": pred}
+
+if __name__=='__main__':
+    init()
+    # debug(True)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
