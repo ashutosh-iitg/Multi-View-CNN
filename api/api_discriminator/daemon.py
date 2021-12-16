@@ -3,15 +3,14 @@ import cv2
 import sys
 import json
 import tempfile
+import numpy as np
 import argparse
-
-import predictor
+from albumentations.pytorch.transforms import ToTensorV2 
 from bottle import route, run, request, debug, HTTPError, HTTPResponse
 
 import torch
-import numpy as np
+import predictor
 from model import MVCNN
-from albumentations.pytorch.transforms import ToTensorV2
 
 
 def init():
@@ -29,7 +28,6 @@ def init():
     
     predict_model = MVCNN(num_classes=len(label_dict), pretrained=False)
     predictor.load_model(args.model_path, predict_model)
-
 
 def get_image(image_path):
     image = cv2.imdecode(image_path, cv2.IMREAD_COLOR)
@@ -57,15 +55,14 @@ def predict(image):
 @route('/discriminate', method='POST')
 def discriminate():
     try:
+    
         upload1 = request.files.get('upload1')
         upload2 = request.files.get('upload2')
-        
+
         # no file is attached
         if upload1 is None or upload2 is None:
             return HTTPError(status="406 Not Acceptable")
 
-        # post multiple files
-        images = []
         with tempfile.TemporaryDirectory() as dname:
             temp_file1 = os.path.join(dname, "temp_file1")
             temp_file2 = os.path.join(dname, "temp_file2")
@@ -75,15 +72,14 @@ def discriminate():
                 image1 = np.asarray(bytearray(f.read()), dtype="uint8")
             with open(temp_file2, "rb") as f:
                 image2 = np.asarray(bytearray(f.read()), dtype="uint8")
-            images=[image1,image2]
-        
-        images = torch.stack(images, dim=0)
 
-        pred = predict(images)
-        content = {
-            'Genus': pred
+        image = torch.stack([get_image(image1),get_image(image2)],dim=0)
+        pred = predict(image)
+
+        show_dict = {
+            "Genus": pred
         }
-        show_json = json.dumps(content, ascii=False)
+        show_json = json.dumps(show_dict, ensure_ascii=False)
         rtn = HTTPResponse(status=200, body=show_json)
         rtn.set_header('Content-Type', 'application/json')
         return rtn
@@ -95,7 +91,7 @@ def discriminate():
 def health_check():
     return "I'm OK."
 
-if __name__=='__main__':
+if __name__ == "__main__":
     init()
-    # debug(True)
+    debug(True)
     run(host='0.0.0.0', port=8091)

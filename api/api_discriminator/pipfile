@@ -6,18 +6,12 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pillow = "*"
 numpy = "*"
-imageio = "*"
-matplotlib = "*"
-sklearn = "*"
 opencv-python = "*"
-tqdm = "*"
-pandas = "*"
 bottle = "*"
-torch = '*'
-torchvision = '*'
-albumentations = '*'
+torch = "*"
+torchvision = "*"
+albumentations = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.7"

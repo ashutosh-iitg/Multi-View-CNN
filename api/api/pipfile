@@ -7,9 +7,8 @@ verify_ssl = true
 
 [packages]
 bottle = "*"
-requests = '*'
-pillow = "*"
-imageio = "*"
+numpy = "*"
+requests = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.7"

@@ -1,18 +1,16 @@
 import os
 import sys
+import tempfile
 import requests
 import argparse
-import tempfile
-
 from urllib.parse import urlparse
 from bottle import route, run, request, debug, HTTPError, HTTPResponse
-
 
 def init():
     global discriminator_endpoint
 
-    parser = argparse.ArgumentParser(description="A script for prediction using MVCNN model")
-    parser.add_argument('--discriminator-endpoint', default=os.environ.get('API_DISCRIMINATOR_ENDPOINT'), type=str, help='discrimimnator endpoint')
+    parser = argparse.ArgumentParser(description='A script for testing working of APIs')
+    parser.add_argument('--discriminator_endpoint', default=os.environ.get('API_DISCRIMINATOR_ENDPOINT'), type=str, help='discriminator endpoint')
     args = parser.parse_args()
 
     discriminator_endpoint = args.discriminator_endpoint
@@ -27,6 +25,7 @@ def predict():
 
     upload1 = request.files.get('upload1')
     upload2 = request.files.get('upload2')
+
     # no file is attached
     if upload1 is None or upload2 is None:
         return HTTPError(status="406 Not Acceptable")
@@ -36,20 +35,26 @@ def predict():
         temp_file2 = os.path.join(dname, "temp_file2")
         upload1.save(temp_file1)
         upload2.save(temp_file2)
-    files = {'upload1': open(temp_file1, 'rb'), 'upload2': open(temp_file2, 'rb')}
+        with open(temp_file1, "rb") as f:
+            image1 = f.read()
+        with open(temp_file2, "rb") as f:
+            image2 = f.read()
     # call detect API
+    files = {'upload1': ('temp1.jpg', image1, 'image/jpeg'), 
+                'upload2': ('temp2.jpg', image2, 'image/jpeg')}
+
     try:
         response = requests.post(discriminator_endpoint, files=files)
     except Exception as e:
-        return HTTPError(Exception=e)
-
-    if not response.status_code==200:
+        return HTTPError(exception=e)
+    
+    if not response.status_code == 200:
         body = response.text
         print(body, file=sys.stderr)
         return HTTPError(status=500, body=body)
 
     rtn = HTTPResponse(status=200, body=response.content)
-    rtn.set_header('Content-type', 'application/json')
+    rtn.set_header('Content-Type', 'application/json')
     return rtn
 
 @route('/health_check', method='GET')
@@ -74,7 +79,7 @@ def health_check():
 
     return "I'm OK."
 
-if __name__=="_main__":
+if __name__ == "__main__":
     init()
     debug(True)
     run(host='0.0.0.0', port=8080)

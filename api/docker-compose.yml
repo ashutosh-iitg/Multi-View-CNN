@@ -1,9 +1,11 @@
-version: "3"
+version: '3'
 services:
   api_discriminator:
     build: api_discriminator
     privileged: true
     container_name: api_discriminator
+    ports:
+      - "8091:8091"
   api:
     build: api
     ports:
@@ -11,4 +13,4 @@ services:
     privileged: true
     container_name: api
     environment:
-      - API_DISCRIMINATOR_ENDPOINT=http://api_discriminator:8091/discriminate
+      - API_DISCRIMINATOR_ENDPOINT=http://api_discriminator:8091/discriminate 
