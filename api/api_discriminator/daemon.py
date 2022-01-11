@@ -55,25 +55,25 @@ def predict(image):
 @route('/discriminate', method='POST')
 def discriminate():
     try:
-    
-        upload1 = request.files.get('upload1')
-        upload2 = request.files.get('upload2')
 
-        # no file is attached
-        if upload1 is None or upload2 is None:
+        uploads = request.files.getall('upload')
+
+        # if no file is attached
+        if uploads is None:
             return HTTPError(status="406 Not Acceptable")
 
+        img_list = []
         with tempfile.TemporaryDirectory() as dname:
-            temp_file1 = os.path.join(dname, "temp_file1")
-            temp_file2 = os.path.join(dname, "temp_file2")
-            upload1.save(temp_file1)
-            upload2.save(temp_file2)
-            with open(temp_file1, "rb") as f:
-                image1 = np.asarray(bytearray(f.read()), dtype="uint8")
-            with open(temp_file2, "rb") as f:
-                image2 = np.asarray(bytearray(f.read()), dtype="uint8")
-
-        image = torch.stack([get_image(image1),get_image(image2)],dim=0)
+            i = 1
+            for upload in uploads:
+                temp_file = os.path.join(dname, "temp_file{}".format(i))
+                upload.save(temp_file)
+                with open(temp_file, "rb") as f:
+                    image = np.asarray(bytearray(f.read()), dtype="uint8")
+                img_list.append(image)
+                i += 1
+                
+        image = torch.stack([get_image(img) for img in img_list], dim=0)
         pred = predict(image)
 
         show_dict = {

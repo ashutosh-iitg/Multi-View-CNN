@@ -23,25 +23,20 @@ def predict():
     except Exception as e:
         return HTTPError(Exception=e)
 
-    upload1 = request.files.get('upload1')
-    upload2 = request.files.get('upload2')
+    uploads = request.files.getall('upload')
 
-    # no file is attached
-    if upload1 is None or upload2 is None:
+    # if no file is attached
+    if uploads is None:
         return HTTPError(status="406 Not Acceptable")
 
+    files = []
     with tempfile.TemporaryDirectory() as dname:
-        temp_file1 = os.path.join(dname, "temp_file1")
-        temp_file2 = os.path.join(dname, "temp_file2")
-        upload1.save(temp_file1)
-        upload2.save(temp_file2)
-        with open(temp_file1, "rb") as f:
-            image1 = f.read()
-        with open(temp_file2, "rb") as f:
-            image2 = f.read()
-    # call detect API
-    files = {'upload1': ('temp1.jpg', image1, 'image/jpeg'), 
-                'upload2': ('temp2.jpg', image2, 'image/jpeg')}
+        i = 1
+        for upload in uploads:
+            temp_file = os.path.join(dname, "temp_file{}".format(i))
+            upload.save(temp_file)
+            files.append(('upload', ('temp{}.jpg'.format(i), open(temp_file, 'rb'), 'image/jpeg')))
+            i += 1
 
     try:
         response = requests.post(discriminator_endpoint, files=files)
